@@ -1,5 +1,5 @@
 def filtering(data,input_regex):
-  return data.filter(regex='Date|'+ input_regex)
+  return data.filter(regex='Date|capacity solar|Aggregated|'+ input_regex)
 
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPRegressor
@@ -19,12 +19,18 @@ hourMeteo = pd.DataFrame(hourMeteo)
 before_cloud = pd.DataFrame(before_cloud)
 after_cloud = pd.DataFrame(after_cloud)
 
-'''
-krakow_before = filtering(before_cloud,"Krak")
-warszawa_before = filtering(before_cloud,"Warszawa")
-wroclaw_before = filtering(before_cloud,"Wroc")
-gdansk_before = filtering(before_cloud,"Gda")
-szczecin_before = filtering(before_cloud,"Szczecin")
+merged_data = capacity.merge(mixEnergy, on='Date', how='outer') \
+    .merge(hourMeteo, on='Date', how='outer') \
+    .merge(before_cloud, on='Date', how='outer') \
+    .merge(after_cloud, on='Date', how='outer')
+
+krakow_data = filtering(merged_data,"Krak")
+warszawa_data = filtering(merged_data,"Warszawa")
+wroclaw_data = filtering(merged_data,"Wroc")
+gdansk_data = filtering(merged_data,"Gda")
+szczecin_data = filtering(merged_data,"Szczecin")
+
+print(krakow_data)
 '''
 
 capacity_train, capacity_test = train_test_split(capacity, test_size=0.2, random_state=42)
@@ -49,3 +55,4 @@ model_nn_mixEnergy.fit(mixEnergy_train.drop(columns=['Date']), mixEnergy_train['
 model_nn_hourMeteo.fit(hourMeteo_train.drop(columns=['Date']), hourMeteo_train['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar'])
 model_nn_before_cloud.fit(before_cloud_train.drop(columns=['Date']), before_cloud_train['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar'])
 model_nn_after_cloud.fit(after_cloud_train.drop(columns=['Date']), after_cloud_train['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar'])
+'''
