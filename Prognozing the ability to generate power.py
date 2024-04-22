@@ -1,12 +1,27 @@
-def filtering(data,input_regex):
-  return data.filter(regex='Date|capacity solar|Aggregated|'+ input_regex)
-
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPRegressor
 import csv 
 import matplotlib.pyplot
 import pandas as pd 
 import matplotlib.pyplot as plt
+from sklearn.metrics import mean_squared_error
+from sklearn.impute import SimpleImputer
+
+def Filtering(data,input_regex):
+  return data.filter(regex='Date|capacity solar|Aggregated|'+ input_regex)
+
+def Model_operations(data):
+  data.fillna(method='ffill', inplace=True)
+  X = data.drop(columns=['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar','Date'])
+  Y = data['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar']
+  X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+  model = MLPRegressor(hidden_layer_sizes=(100, 50), activation='relu', random_state=42)
+  model.fit(X_train, Y_train)
+  Y_pred = model.predict(X_test)
+  R2 = model.score(X_test, Y_test) #R^2
+  mse = mean_squared_error(Y_test, Y_pred)
+  return R2, mse
+
 capacity = pd.read_csv('Energy Poland Installed capacity.csv', usecols=['Date', 'Installed capacity solar Poland', 'Installed capacity energy_storage Poland'])
 mixEnergy = pd.read_csv('Mix Energy Poland.csv', usecols =['Date','Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar'])
 hourMeteo = pd.read_csv('Godzinowe dane meteo dla poszczególnych lokalizacji.csv')
@@ -24,13 +39,22 @@ merged_data = capacity.merge(mixEnergy, on='Date', how='outer') \
     .merge(before_cloud, on='Date', how='outer') \
     .merge(after_cloud, on='Date', how='outer')
 
-krakow_data = filtering(merged_data,"Krak")
-warszawa_data = filtering(merged_data,"Warszawa")
-wroclaw_data = filtering(merged_data,"Wroc")
-gdansk_data = filtering(merged_data,"Gda")
-szczecin_data = filtering(merged_data,"Szczecin")
+krakow_data = Filtering(merged_data,"Krak")
+warszawa_data = Filtering(merged_data,"Warszawa")
+wroclaw_data = Filtering(merged_data,"Wroc")
+gdansk_data = Filtering(merged_data,"Gda")
+szczecin_data = Filtering(merged_data,"Szczecin")
 
-print(krakow_data)
+
+
+krakow_data.to_csv('nazwa_pliku.csv', index=False)  # index=False oznacza, że nie chcemy eksportować indeksów wierszy
+
+
+krakow_R2, mse = Model_operations(krakow_data)
+print(krakow_R2)
+print(mse)
+
+
 '''
 
 capacity_train, capacity_test = train_test_split(capacity, test_size=0.2, random_state=42)
