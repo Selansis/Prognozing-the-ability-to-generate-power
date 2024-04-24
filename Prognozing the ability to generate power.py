@@ -7,7 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-def Filtering(data,input_regex):
+def Filtering(data,input_regex, operation):
   return data.filter(regex='Date|capacity solar|Aggregated|'+ input_regex)
 
 def Neural_network(data, horizon):
@@ -15,12 +15,13 @@ def Neural_network(data, horizon):
   X = data.drop(columns=['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar','Date'])
   Y = data['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar']
   X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=horizon, random_state=42)
-
   models = []
-  for i in range(horizon):
-    model = MLPRegressor(hidden_layer_sizes=(100, 50), activation='relu', random_state=42)
-    model.fit(X_train, Y_train)
-    models.append(model)
+  match operation:
+    case "nn":
+      for i in range(horizon):
+        model = MLPRegressor(hidden_layer_sizes=(100, 50), activation='relu', random_state=42)
+        model.fit(X_train, Y_train)
+        models.append(model)
 
   Y_preds = []
   for model in models:
