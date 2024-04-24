@@ -1,25 +1,35 @@
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPRegressor
+from sklearn.metrics import mean_squared_error, r2_score
 import csv 
 import matplotlib.pyplot
 import pandas as pd 
 import matplotlib.pyplot as plt
-from sklearn.metrics import mean_squared_error
-from sklearn.impute import SimpleImputer
+import numpy as np
 
 def Filtering(data,input_regex):
   return data.filter(regex='Date|capacity solar|Aggregated|'+ input_regex)
 
-def Model_operations(data):
+def Neural_network(data, horizon):
   data.fillna(method='ffill', inplace=True)
   X = data.drop(columns=['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar','Date'])
   Y = data['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar']
-  X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
-  model = MLPRegressor(hidden_layer_sizes=(100, 50), activation='relu', random_state=42)
-  model.fit(X_train, Y_train)
-  Y_pred = model.predict(X_test)
-  R2 = model.score(X_test, Y_test) #R^2
-  mse = mean_squared_error(Y_test, Y_pred)
+  X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=horizon, random_state=42)
+
+  models = []
+  for i in range(horizon):
+    model = MLPRegressor(hidden_layer_sizes=(100, 50), activation='relu', random_state=42)
+    model.fit(X_train, Y_train)
+    models.append(model)
+
+  Y_preds = []
+  for model in models:
+    Y_pred = model.predict(X_test)
+    Y_preds.append(Y_pred)
+  
+  Y_pred_all = np.concatenate(Y_preds)
+  mse = mean_squared_error(Y_test, Y_pred_all)
+  R2 = r2_score(Y_test, Y_pred_all)
   return R2, mse
 
 capacity = pd.read_csv('Energy Poland Installed capacity.csv', usecols=['Date', 'Installed capacity solar Poland', 'Installed capacity energy_storage Poland'])
@@ -47,10 +57,10 @@ szczecin_data = Filtering(merged_data,"Szczecin")
 
 
 
-krakow_data.to_csv('nazwa_pliku.csv', index=False)  # index=False oznacza, że nie chcemy eksportować indeksów wierszy
+#krakow_data.to_csv('nazwa_pliku.csv', index=False)  # index=False oznacza, że nie chcemy eksportować indeksów wierszy
 
 
-krakow_R2, mse = Model_operations(krakow_data)
+krakow_R2, mse = Neural_network(krakow_data,48)
 print(krakow_R2)
 print(mse)
 
