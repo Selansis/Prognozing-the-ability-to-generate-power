@@ -1,16 +1,16 @@
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPRegressor
 from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.ensemble import GradientBoostingRegressor
 import csv 
-import matplotlib.pyplot
 import pandas as pd 
 import matplotlib.pyplot as plt
 import numpy as np
 
-def Filtering(data,input_regex, operation):
+def Filtering(data,input_regex):
   return data.filter(regex='Date|capacity solar|Aggregated|'+ input_regex)
 
-def Neural_network(data, horizon):
+def Neural_network(data, horizon, operation):
   data.fillna(method='ffill', inplace=True)
   X = data.drop(columns=['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar','Date'])
   Y = data['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar']
@@ -20,6 +20,12 @@ def Neural_network(data, horizon):
     case "nn":
       for i in range(horizon):
         model = MLPRegressor(hidden_layer_sizes=(100, 50), activation='relu', random_state=42)
+        model.fit(X_train, Y_train)
+        models.append(model)
+
+    case "gradient":
+      for i in range(horizon):
+        model = GradientBoostingRegressor(random_state=42)
         model.fit(X_train, Y_train)
         models.append(model)
 
@@ -61,7 +67,7 @@ szczecin_data = Filtering(merged_data,"Szczecin")
 #krakow_data.to_csv('nazwa_pliku.csv', index=False)  # index=False oznacza, że nie chcemy eksportować indeksów wierszy
 
 
-krakow_R2, mse = Neural_network(krakow_data,48)
+krakow_R2, mse = Neural_network(krakow_data, 48, "nn")
 print(krakow_R2)
 print(mse)
 
