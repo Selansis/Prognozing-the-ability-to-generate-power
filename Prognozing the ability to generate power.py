@@ -6,38 +6,34 @@ import csv
 import pandas as pd 
 import matplotlib.pyplot as plt
 import numpy as np
+from joblib import Parallel, delayed
 
 def Filtering(data,input_regex):
   return data.filter(regex='Date|capacity solar|Aggregated|'+ input_regex)
 
 def Neural_network(data, horizon, operation):
-  data.fillna(method='ffill', inplace=True)
+  data.loc[:, :] = data.ffill()
+  #data.ffill(inplace = True)
   X = data.drop(columns=['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar','Date'])
   Y = data['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar']
   X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=horizon, random_state=42)
   models = []
-  match operation:
-    case "nn":
-      for i in range(horizon):
-        model = MLPRegressor(hidden_layer_sizes=(100, 50), activation='relu', random_state=42)
-        model.fit(X_train, Y_train)
-        models.append(model)
-
-    case "gradient":
-      for i in range(horizon):
-        model = GradientBoostingRegressor(random_state=42)
-        model.fit(X_train, Y_train)
-        models.append(model)
-
+  def train_model(model_type):
+      if model_type == "nn":
+          model = MLPRegressor(hidden_layer_sizes=(25,), activation='relu', random_state=42, solver='adam', alpha=0.05, max_iter=1000)
+      elif model_type == "gradient":
+          model = GradientBoostingRegressor(n_estimators=50, max_depth=3, random_state=42)
+      model.fit(X_train, Y_train)
+      return model
+  models = Parallel(n_jobs=4)(delayed(train_model)(operation) for _ in range(horizon))
   Y_preds = []
-  for model in models:
-    Y_pred = model.predict(X_test)
-    Y_preds.append(Y_pred)
-  
+  for model, X_test, _ in models:
+      Y_pred = model.predict(X_test)
+      Y_preds.append(Y_pred)
   Y_pred_all = np.concatenate(Y_preds)
   mse = mean_squared_error(Y_test, Y_pred_all)
   R2 = r2_score(Y_test, Y_pred_all)
-  return R2, mse
+  return R2, mse, models
 
 capacity = pd.read_csv('Energy Poland Installed capacity.csv', usecols=['Date', 'Installed capacity solar Poland', 'Installed capacity energy_storage Poland'])
 mixEnergy = pd.read_csv('Mix Energy Poland.csv', usecols =['Date','Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar'])
@@ -67,33 +63,8 @@ szczecin_data = Filtering(merged_data,"Szczecin")
 #krakow_data.to_csv('nazwa_pliku.csv', index=False)  # index=False oznacza, że nie chcemy eksportować indeksów wierszy
 
 
-krakow_R2, mse = Neural_network(krakow_data, 48, "nn")
+krakow_R2, mse, krakow_models = Neural_network(krakow_data, 48, "nn")
 print(krakow_R2)
 print(mse)
+print(krakow_models)
 
-
-'''
-
-capacity_train, capacity_test = train_test_split(capacity, test_size=0.2, random_state=42)
-mixEnergy_train, mixEnergy_test = train_test_split(mixEnergy, test_size=0.2, random_state=42)
-hourMeteo_train, hourMeteo_test = train_test_split(hourMeteo, test_size=0.2, random_state=42)
-before_cloud_train, before_cloud_test = train_test_split(before_cloud, test_size=0.2, random_state=42)
-after_cloud_train, after_cloud_test = train_test_split(after_cloud, test_size=0.2, random_state=42)
-
-
-from sklearn.neural_network import MLPRegressor
-
-# Definicja modelu sieci neuronowej
-model_nn_capacity = MLPRegressor(hidden_layer_sizes=(100, 50), activation='relu', solver='adam', random_state=42)
-model_nn_mixEnergy = MLPRegressor(hidden_layer_sizes=(100, 50), activation='relu', solver='adam', random_state=42)
-model_nn_hourMeteo = MLPRegressor(hidden_layer_sizes=(100, 50), activation='relu', solver='adam', random_state=42)
-model_nn_before_cloud = MLPRegressor(hidden_layer_sizes=(100, 50), activation='relu', solver='adam', random_state=42)
-model_nn_after_cloud = MLPRegressor(hidden_layer_sizes=(100, 50), activation='relu', solver='adam', random_state=42)
-
-# Trenowanie modeli na danych treningowyc
-model_nn_capacity.fit(capacity_train.drop(columns=['Date']), capacity_train['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar'])
-model_nn_mixEnergy.fit(mixEnergy_train.drop(columns=['Date']), mixEnergy_train['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar'])
-model_nn_hourMeteo.fit(hourMeteo_train.drop(columns=['Date']), hourMeteo_train['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar'])
-model_nn_before_cloud.fit(before_cloud_train.drop(columns=['Date']), before_cloud_train['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar'])
-model_nn_after_cloud.fit(after_cloud_train.drop(columns=['Date']), after_cloud_train['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar'])
-'''
