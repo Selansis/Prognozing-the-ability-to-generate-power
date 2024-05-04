@@ -27,7 +27,7 @@ class DataProcessing:
             model = MLPRegressor(hidden_layer_sizes=(25,), activation='relu', random_state=42, max_iter=1000)
         elif model_type == "gradient":                
             model = GradientBoostingRegressor(random_state=42)
-            model.fit(X_train, Y_train)
+        model.fit(X_train, Y_train)
         return model, X_test, Y_test
     models = Parallel(n_jobs=-1)(delayed(train_model)(operation) for _ in range(horizon))
       
