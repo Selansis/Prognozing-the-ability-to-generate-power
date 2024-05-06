@@ -14,6 +14,9 @@ after_cloud = pd.read_csv('data/po_uwzg_zachmurzenia.csv')
 data_frames = [capacity, mixEnergy, hourMeteo, before_cloud, after_cloud]
 preparing_gen_data = PercentCounting()
 r2_48nn,mse_48nn,Prog48nn = preparing_gen_data.Counting(data_frames, 48,  'nn')
+r2_48gradient,mse_48gradient,Prog48gradient = preparing_gen_data.Counting(data_frames, 48,  'nn')
+r2_48nn,mse_48nn,Prog48nn = preparing_gen_data.Counting(data_frames, 72,  'gradient')
+r2_72gradient,mse_72gradient,Prog72gradient = preparing_gen_data.Counting(data_frames, 72,  'gradient')
 """Performs data modeling. 
 Parameters: 
 data (list): Dataframes we want to use.
