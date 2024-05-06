@@ -1,9 +1,6 @@
 import pandas as pd 
 
 class PreparingData:
-  def __init__(self):
-    self.data = None
-
   def Merging(self, data_frames):
     for df in data_frames:
       df['Date'] = pd.to_datetime(df['Date'])
