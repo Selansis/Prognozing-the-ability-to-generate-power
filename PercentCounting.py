@@ -12,6 +12,6 @@ class PercentCounting:
     model = DataProcessing(prognozing_data_merged)
     r2_cap,mse_cap,Progpreg_cap = model.CreatingModel(horizon,operation,'capacity')
     resultPercente = []
-    for num in Progpred_gen:
+    for num in range(len(Progpred_gen)):
       resultPercente[num] = Progpred_gen[num]/Progpreg_cap[num]*100
     return r2_gen, mse_gen, resultPercente
