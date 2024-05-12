@@ -11,5 +11,4 @@ class PreparingData:
     for df in data_frames[1:]:
       merged_data = merged_data.merge(df, on='Date', how='outer')
     merged_data.dropna(inplace=True)
-    merged_data = merged_data.drop(columns='Date')
     return merged_data

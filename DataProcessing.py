@@ -15,11 +15,12 @@ class DataProcessing:
     return self.data.filter(regex='Date|capacity solar|Aggregated|'+ input_regex)
 
   def CreatingModel(self, horizon, operation, prognozing):
+    self.data = self.data.drop(columns='Date')
     scaler_X = StandardScaler()
     scaler_Y = StandardScaler()
 
     if prognozing == "generation":
-      X = self.data.drop(columns=['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar','Installed capacity solar Poland'])
+      X = self.data.drop(columns=['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar'])
       Y = self.data['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar']
     elif prognozing == "capacity":
       X = self.data.drop(columns=['Installed capacity solar Poland'])
