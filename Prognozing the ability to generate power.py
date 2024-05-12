@@ -70,6 +70,9 @@ szczecin_data = Filtering(merged_data,"Szczecin")
 krakow_R2, mse = Neural_network(krakow_data, 48, "nn")
 print(krakow_R2)
 print(mse)
+krakow_R2, mse = Neural_network(krakow_data, 48, "gradient")
+print(krakow_R2)
+print(mse)
 
 
 '''
