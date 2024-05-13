@@ -20,37 +20,37 @@ class DataProcessing:
     scaler_Y = StandardScaler()
 
     if prognozing == "generation":
-      X = self.data.drop(columns=['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar'])
       Y = self.data['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar']
+      X = self.data.drop(columns=['Aggregated Generation Per Type, PSE SA CA, Actual Generation Output, Solar'])
+
     elif prognozing == "capacity":
-      X = self.data.drop(columns=['Installed capacity solar Poland'])
       Y = self.data['Installed capacity solar Poland']
+      X = self.data.drop(columns=['Installed capacity solar Poland'])
+
 
     X_scaled = scaler_X.fit_transform(X)
     Y_scaled = scaler_Y.fit_transform(Y.values.reshape(-1, 1))
-    
-    data = pd.concat([pd.DataFrame(X_scaled, columns=X.columns), pd.DataFrame(Y_scaled, columns=[Y.name])], axis=1)
 
-    def train_model(model_type):
-        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=horizon, random_state=42)
-        if model_type == "nn":
-            model = MLPRegressor(hidden_layer_sizes=(25,), activation='relu', random_state=42, max_iter=1000)
-        elif model_type == "gradient":                
-            model = GradientBoostingRegressor(random_state=42)
-        model.fit(X_train, Y_train)
-        return model, X_test, Y_test
-    models = Parallel(n_jobs=-1)(delayed(train_model)(operation) for _ in range(horizon))
-      
     Y_preds = []
     Y_tests = []
-    for model, X_test, Y_test in models:
-      Y_pred = model.predict(X_test)
-      Y_pred = scaler_Y.inverse_transform(Y_pred.reshape(-1, 1))
-      Y_preds.append(Y_pred)
-      Y_tests.append(Y_test)
+    for i in range(horizon):
+        X_train, X_test, Y_train, Y_test = train_test_split(X_scaled[:-i-1 if i > 0 else None], Y_scaled[:-i-1 if i > 0 else None], test_size=1, random_state=42)
+        if operation == "nn":
+            model = MLPRegressor(hidden_layer_sizes=(25,), activation='relu', random_state=42)
+        elif operation == "gradient":                
+            model = GradientBoostingRegressor(random_state=42)
+        model.fit(X_train, Y_train.ravel())
+        Y_pred = model.predict(X_test)
+        Y_pred = scaler_Y.inverse_transform(Y_pred.reshape(-1, 1))
+        Y_preds.append(Y_pred)
+        Y_tests.append(Y_test)
 
+    Y_preds_parallel = Parallel(n_jobs=-1)(delayed(model.predict)(X_test) for X_test in X_scaled)
+    Y_pred_all = np.concatenate(Y_preds_parallel)
     Y_pred_all = np.concatenate(Y_preds)
     Y_test_all = np.concatenate(Y_tests)
     mse = mean_squared_error(Y_test_all, Y_pred_all)
     R2 = r2_score(Y_test_all, Y_pred_all)
     return R2, mse, Y_pred_all
+
+
